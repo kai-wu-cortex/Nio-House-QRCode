@@ -15,6 +15,7 @@ export default function App() {
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(60);
 
   // Update time every second
   useEffect(() => {
@@ -22,80 +23,93 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch QR code when modal opens, refresh every minute
+  const fetchQRCode = async () => {
+    setQrLoading(true);
+    setQrError(null);
+
+    try {
+      // Try backend proxy first (Vercel function)
+      const response = await fetch('/api/qr-code', { method: 'GET' });
+
+      if (!response.ok) {
+        // If backend proxy fails (Cloudflare blocks Vercel IP), use public CORS proxy
+        console.warn('Backend proxy failed, trying CORS proxy...');
+        // sign is fixed, must use fixed timestamp that matches the sign
+        const timestamp = 1772817763;
+        const targetUrl = `https://app.nio.com/n/c/lifestyle/account/user/qr_code?app_id=10002&app_ver=6.2.0&device_id=14e3f556d3984993a59ad96e8af3ba2d&lang=zh-cn&region=cn&timestamp=${timestamp}&refresh=0&sign=7088d8df23f2aadd9147ad5a4df30a3f`;
+        const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetUrl)}`;
+        const corsResp = await fetch(proxyUrl);
+
+        if (!corsResp.ok) {
+          throw new Error(`请求失败: ${corsResp.status}`);
+        }
+
+        const text = await corsResp.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          console.error('Invalid JSON from proxy:', text.slice(0, 500));
+          throw new Error('CORS 代理返回了无效数据，请重试');
+        }
+
+        if (data && data.data && data.data.qr_code) {
+          setQrCodeData(data.data.qr_code);
+        } else if (data && data.qr_code) {
+          setQrCodeData(data.qr_code);
+        } else {
+          console.error('Response data:', data);
+          throw new Error('返回数据中没有二维码');
+        }
+      } else {
+        const data = await response.json();
+
+        if (data && data.data && data.qr_code) {
+          setQrCodeData(data.data.qr_code);
+        } else if (data && data.qr_code) {
+          setQrCodeData(data.qr_code);
+        } else {
+          console.error('Response data:', data);
+          throw new Error('返回数据中没有二维码');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch QR code:', error);
+      setQrError(String(error));
+    } finally {
+      setQrLoading(false);
+      setCountdown(60);
+    }
+  };
+
+  // Reset countdown and fetch when QR modal opens/closes
   useEffect(() => {
-    if (!showQR) {
+    if (showQR) {
+      setCountdown(60);
+      fetchQRCode();
+    } else {
       setQrCodeData(null);
       setQrError(null);
-      return;
     }
-
-    const fetchQRCode = async () => {
-      setQrLoading(true);
-      setQrError(null);
-
-      try {
-        // Try backend proxy first (Vercel function)
-        const response = await fetch('/api/qr-code', { method: 'GET' });
-
-        if (!response.ok) {
-          // If backend proxy fails (Cloudflare blocks Vercel IP), use public CORS proxy
-          console.warn('Backend proxy failed, trying CORS proxy...');
-          // sign is fixed, must use fixed timestamp that matches the sign
-          const timestamp = 1772817763;
-          const targetUrl = `https://app.nio.com/n/c/lifestyle/account/user/qr_code?app_id=10002&app_ver=6.2.0&device_id=14e3f556d3984993a59ad96e8af3ba2d&lang=zh-cn&region=cn&timestamp=${timestamp}&refresh=0&sign=7088d8df23f2aadd9147ad5a4df30a3f`;
-          const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetUrl)}`;
-          const corsResp = await fetch(proxyUrl);
-
-          if (!corsResp.ok) {
-            throw new Error(`请求失败: ${corsResp.status}`);
-          }
-
-          const text = await corsResp.text();
-          let data;
-          try {
-            data = JSON.parse(text);
-          } catch (e) {
-            console.error('Invalid JSON from proxy:', text.slice(0, 500));
-            throw new Error('CORS 代理返回了无效数据，请重试');
-          }
-
-          if (data && data.data && data.data.qr_code) {
-            setQrCodeData(data.data.qr_code);
-          } else if (data && data.qr_code) {
-            setQrCodeData(data.qr_code);
-          } else {
-            console.error('Response data:', data);
-            throw new Error('返回数据中没有二维码');
-          }
-        } else {
-          const data = await response.json();
-
-          if (data && data.data && data.data.qr_code) {
-            setQrCodeData(data.data.qr_code);
-          } else if (data && data.qr_code) {
-            setQrCodeData(data.qr_code);
-          } else {
-            console.error('Response data:', data);
-            throw new Error('返回数据中没有二维码');
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch QR code:', error);
-        setQrError(String(error));
-      } finally {
-        setQrLoading(false);
-      }
-    };
-
-    // Fetch immediately
-    fetchQRCode();
-
-    // Refresh every minute
-    const refreshTimer = setInterval(fetchQRCode, 60000);
-
-    return () => clearInterval(refreshTimer);
   }, [showQR]);
+
+  // Countdown tick every second
+  useEffect(() => {
+    if (!showQR || qrLoading) return;
+
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          // Timeout, trigger refresh
+          fetchQRCode();
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [showQR, qrLoading]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -334,10 +348,10 @@ export default function App() {
                   </div>
 
                   <div className="mt-10 flex flex-col items-center space-y-2 relative z-10">
-                    <span className="font-mono text-2xl tracking-widest font-medium text-gray-900">
-                      {formatTime(currentTime)}
+                    <span className="font-mono text-3xl tracking-widest font-medium text-gray-900">
+                      {countdown}s
                     </span>
-                    <p className="text-xs text-gray-400">动态二维码每分钟自动刷新</p>
+                    <p className="text-xs text-gray-400">剩余 {countdown} 秒后自动刷新二维码</p>
                   </div>
                 </div>
               </div>
