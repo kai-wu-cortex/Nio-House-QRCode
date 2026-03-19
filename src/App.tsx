@@ -35,30 +35,53 @@ export default function App() {
       setQrError(null);
 
       try {
-        const timestamp = Math.floor(Date.now() / 1000);
-        const targetUrl = `https://app.nio.com/n/c/lifestyle/account/user/qr_code?app_id=10002&app_ver=6.2.0&device_id=14e3f556d3984993a59ad96e8af3ba2d&lang=zh-cn&region=cn&timestamp=${timestamp}&refresh=0&sign=7088d8df23f2aadd9147ad5a4df30a3f`;
-
-        // Use codetabs.com CORS proxy to bypass Cloudflare/IP blocking
-        const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetUrl)}`;
-
-        const response = await fetch(proxyUrl);
+        // Try backend proxy first (Vercel function)
+        const response = await fetch('/api/qr-code', { method: 'GET' });
 
         if (!response.ok) {
-          throw new Error(`请求失败: ${response.status}`);
-        }
+          // If backend proxy fails (Cloudflare blocks Vercel IP), use public CORS proxy
+          console.warn('Backend proxy failed, trying CORS proxy...');
+          const timestamp = Math.floor(Date.now() / 1000);
+          const targetUrl = `https://app.nio.com/n/c/lifestyle/account/user/qr_code?app_id=10002&app_ver=6.2.0&device_id=14e3f556d3984993a59ad96e8af3ba2d&lang=zh-cn&region=cn&timestamp=${timestamp}&refresh=0&sign=7088d8df23f2aadd9147ad5a4df30a3f`;
+          const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetUrl)}`;
+          const corsResp = await fetch(proxyUrl);
 
-        const data = await response.json();
+          if (!corsResp.ok) {
+            throw new Error(`请求失败: ${corsResp.status}`);
+          }
 
-        if (data && data.data && data.data.qr_code) {
-          setQrCodeData(data.data.qr_code);
-        } else if (data && data.qr_code) {
-          setQrCodeData(data.qr_code);
+          const text = await corsResp.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            console.error('Invalid JSON from proxy:', text.slice(0, 500));
+            throw new Error('CORS 代理返回了无效数据，请重试');
+          }
+
+          if (data && data.data && data.data.qr_code) {
+            setQrCodeData(data.data.qr_code);
+          } else if (data && data.qr_code) {
+            setQrCodeData(data.qr_code);
+          } else {
+            console.error('Response data:', data);
+            throw new Error('返回数据中没有二维码');
+          }
         } else {
-          throw new Error('返回数据中没有二维码');
+          const data = await response.json();
+
+          if (data && data.data && data.data.qr_code) {
+            setQrCodeData(data.data.qr_code);
+          } else if (data && data.qr_code) {
+            setQrCodeData(data.qr_code);
+          } else {
+            console.error('Response data:', data);
+            throw new Error('返回数据中没有二维码');
+          }
         }
       } catch (error) {
         console.error('Failed to fetch QR code:', error);
-        setQrError('获取二维码失败，请稍后重试');
+        setQrError(String(error));
       } finally {
         setQrLoading(false);
       }
