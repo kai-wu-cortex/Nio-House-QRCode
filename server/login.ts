@@ -24,13 +24,10 @@ export async function validateCredentials(req: LoginRequest): Promise<Validation
 
   try {
     // Query Notion database for matching username
-    const response = await notion.databases.query({
-      database_id: NOTION_DATABASE_ID,
+    const response = await notion.search({
       filter: {
-        property: '账户名',
-        title: {
-          equals: username.trim(),
-        },
+        property: 'object',
+        value: 'page',
       },
     });
 
@@ -38,7 +35,11 @@ export async function validateCredentials(req: LoginRequest): Promise<Validation
       return { success: false, error: '账号不存在' };
     }
 
-    const page = response.results[0];
+    // Find the first page that has properties (to handle different result types)
+    const page = response.results.find(page => 'properties' in page);
+    if (!page || !('properties' in page)) {
+      return { success: false, error: '账号不存在' };
+    }
 
     // Extract password from page properties
     let storedPassword = '';

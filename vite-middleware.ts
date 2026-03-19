@@ -1,10 +1,10 @@
-import type { Connect } from 'vite';
+import type * as http from 'http';
 import { validateCredentials } from './server/login';
 
 export async function notionAuthMiddleware(
-  req: Connect.IncomingMessage,
-  res: Connect.ServerResponse,
-  next: Connect.NextFunction
+  req: http.IncomingMessage & { url?: string; method?: string },
+  res: http.ServerResponse,
+  next: (err?: any) => void
 ) {
   // Only handle POST to /api/login
   if (req.url !== '/api/login' || req.method !== 'POST') {
