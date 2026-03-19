@@ -46,6 +46,11 @@ export async function validateCredentials(req: LoginRequest): Promise<Validation
 
     const page = response.results[0];
 
+    // Check that this result has properties (it's a page, not a different object type)
+    if (!('properties' in page)) {
+      return { success: false, error: '账号不存在' };
+    }
+
     // Extract password from page properties
     let storedPassword = '';
     if ('密码' in page.properties) {
