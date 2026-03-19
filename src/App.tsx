@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { QrCode, Calendar, ChevronLeft, User, Lock, X, ArrowRight } from 'lucide-react';
+import { getSavedAuthState, saveAuthState, clearAuthState } from './utils/auth';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(getSavedAuthState().isLoggedIn);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
   const [showQR, setShowQR] = useState(false);
   const [showReservation, setShowReservation] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -17,9 +21,33 @@ export default function App() {
     return date.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoggedIn(true);
+    setLoginError(null);
+
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: usernameInput,
+          password: passwordInput,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        saveAuthState(result.username);
+        setIsLoggedIn(true);
+      } else {
+        setLoginError(result.error || '登录失败');
+      }
+    } catch (error) {
+      setLoginError('网络错误，请稍后再试');
+    }
   };
 
   return (
@@ -70,10 +98,12 @@ export default function App() {
                       <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
                         <User className="w-5 h-5 text-gray-400 group-focus-within:text-gray-900 transition-colors" />
                       </div>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         required
-                        placeholder="请输入账号" 
+                        placeholder="请输入账号"
+                        value={usernameInput}
+                        onChange={(e) => setUsernameInput(e.target.value)}
                         className="w-full pl-10 pr-4 py-4 border-b border-gray-200 outline-none text-lg bg-transparent focus:border-gray-900 transition-colors placeholder:text-gray-300"
                       />
                     </div>
@@ -82,10 +112,12 @@ export default function App() {
                       <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
                         <Lock className="w-5 h-5 text-gray-400 group-focus-within:text-gray-900 transition-colors" />
                       </div>
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
                         required
-                        placeholder="请输入密码" 
+                        placeholder="请输入密码"
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
                         className="w-full pl-10 pr-4 py-4 border-b border-gray-200 outline-none text-lg bg-transparent focus:border-gray-900 transition-colors placeholder:text-gray-300"
                       />
                     </div>
@@ -95,6 +127,12 @@ export default function App() {
                     <span>登入</span>
                     <ArrowRight className="w-5 h-5" />
                   </button>
+
+                  {loginError && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-2xl">
+                      <p className="text-red-600 text-sm text-center">{loginError}</p>
+                    </div>
+                  )}
                   
                   <div className="flex items-start space-x-2 text-xs text-gray-400 pt-4">
                     <input type="checkbox" required className="mt-0.5 rounded border-gray-300 text-gray-900 focus:ring-gray-900" defaultChecked />
@@ -141,8 +179,11 @@ export default function App() {
                   </button>
                 </div>
 
-                <button 
-                  onClick={() => setIsLoggedIn(false)}
+                <button
+                  onClick={() => {
+                    clearAuthState();
+                    setIsLoggedIn(false);
+                  }}
                   className="absolute bottom-12 text-sm text-gray-400 hover:text-gray-900 transition-colors underline underline-offset-4"
                 >
                   退出登入
