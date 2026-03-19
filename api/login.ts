@@ -21,7 +21,7 @@ const notion = new Client({ auth: NOTION_TOKEN });
 /**
  * Validate user credentials against Notion database
  */
-async function validateCredentials(req: LoginRequest): Promise<ValidationResult> {
+export async function validateCredentials(req: LoginRequest): Promise<ValidationResult> {
   const { username, password } = req;
 
   if (!NOTION_TOKEN || !NOTION_DATABASE_ID) {
