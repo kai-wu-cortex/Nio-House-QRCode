@@ -14,25 +14,24 @@ interface ValidationResult {
 }
 
 const NOTION_TOKEN = process.env.NOTION_TOKEN || '';
-const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID || '';
+const NOTION_DATA_SOURCE_ID = process.env.NOTION_DATABASE_ID || '';
 
 const notion = new Client({ auth: NOTION_TOKEN });
 
 /**
- * Validate user credentials against Notion database
+ * Validate user credentials against Notion database (data source)
  */
 export async function validateCredentials(req: LoginRequest): Promise<ValidationResult> {
   const { username, password } = req;
 
-  if (!NOTION_TOKEN || !NOTION_DATABASE_ID) {
+  if (!NOTION_TOKEN || !NOTION_DATA_SOURCE_ID) {
     return { success: false, error: '服务器配置错误' };
   }
 
   try {
-    // Query Notion database for matching username
-    // In @notionhq/client v5, the method is called queryDatabase
+    // For a data source (database), we query directly
     const response = await (notion.databases as any).queryDatabase({
-      database_id: NOTION_DATABASE_ID,
+      database_id: NOTION_DATA_SOURCE_ID,
       filter: {
         property: '账户名',
         title: {
