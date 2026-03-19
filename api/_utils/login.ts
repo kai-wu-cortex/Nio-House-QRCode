@@ -1,5 +1,5 @@
 import { Client } from '@notionhq/client';
-import { LoginRequest } from '../src/types';
+import { LoginRequest } from '../../src/types';
 
 const NOTION_TOKEN = process.env.NOTION_TOKEN || '';
 const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID || '';
