@@ -15,7 +15,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const timestamp = Math.floor(Date.now() / 1000);
+    // sign is fixed, must use fixed timestamp that matches the sign
+    const timestamp = 1772817763;
     const url = `https://app.nio.com/n/c/lifestyle/account/user/qr_code?app_id=10002&app_ver=6.2.0&device_id=14e3f556d3984993a59ad96e8af3ba2d&lang=zh-cn&region=cn&timestamp=${timestamp}&refresh=0&sign=7088d8df23f2aadd9147ad5a4df30a3f`;
 
     const response = await fetch(url, {
