@@ -31,7 +31,7 @@ export async function validateCredentials(req: LoginRequest): Promise<Validation
   try {
     // Query Notion database for matching username
     // In @notionhq/client v5, the method is called queryDatabase
-    const response = await notion.databases.queryDatabase({
+    const response = await (notion.databases as any).queryDatabase({
       database_id: NOTION_DATABASE_ID,
       filter: {
         property: '账户名',
