@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { validateCredentials } from '../server/login';
+import { validateCredentials } from './_utils/login';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Only allow POST
