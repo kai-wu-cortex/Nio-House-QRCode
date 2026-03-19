@@ -35,16 +35,23 @@ export default function App() {
       setQrError(null);
 
       try {
-        const response = await fetch('/api/qr-code', {
-          method: 'GET',
-        });
+        const timestamp = Math.floor(Date.now() / 1000);
+        const targetUrl = encodeURIComponent(`https://app.nio.com/n/c/lifestyle/account/user/qr_code?app_id=10002&app_ver=6.2.0&device_id=14e3f556d3984993a59ad96e8af3ba2d&lang=zh-cn&region=cn&timestamp=${timestamp}&refresh=0&sign=7088d8df23f2aadd9147ad5a4df30a3f`);
+
+        // Use public CORS proxy to bypass Cloudflare IP blocking on Vercel
+        const proxyUrl = `https://api.allorigins.win/raw?url=${targetUrl}`;
+
+        const response = await fetch(proxyUrl);
 
         if (!response.ok) {
           throw new Error(`请求失败: ${response.status}`);
         }
 
         const data = await response.json();
-        if (data && data.qr_code) {
+
+        if (data && data.data && data.data.qr_code) {
+          setQrCodeData(data.data.qr_code);
+        } else if (data && data.qr_code) {
           setQrCodeData(data.qr_code);
         } else {
           throw new Error('返回数据中没有二维码');
