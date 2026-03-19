@@ -36,10 +36,10 @@ export default function App() {
 
       try {
         const timestamp = Math.floor(Date.now() / 1000);
-        const targetUrl = encodeURIComponent(`https://app.nio.com/n/c/lifestyle/account/user/qr_code?app_id=10002&app_ver=6.2.0&device_id=14e3f556d3984993a59ad96e8af3ba2d&lang=zh-cn&region=cn&timestamp=${timestamp}&refresh=0&sign=7088d8df23f2aadd9147ad5a4df30a3f`);
+        const targetUrl = `https://app.nio.com/n/c/lifestyle/account/user/qr_code?app_id=10002&app_ver=6.2.0&device_id=14e3f556d3984993a59ad96e8af3ba2d&lang=zh-cn&region=cn&timestamp=${timestamp}&refresh=0&sign=7088d8df23f2aadd9147ad5a4df30a3f`;
 
-        // Use public CORS proxy to bypass Cloudflare IP blocking on Vercel
-        const proxyUrl = `https://api.allorigins.win/raw?url=${targetUrl}`;
+        // Use codetabs.com CORS proxy to bypass Cloudflare/IP blocking
+        const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetUrl)}`;
 
         const response = await fetch(proxyUrl);
 
