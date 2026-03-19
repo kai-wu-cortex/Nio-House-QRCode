@@ -1,5 +1,5 @@
 import type * as http from 'http';
-import { validateCredentials } from './api/_utils/login';
+import { validateCredentials } from './api/login';
 
 export async function notionAuthMiddleware(
   req: http.IncomingMessage & { url?: string; method?: string },
