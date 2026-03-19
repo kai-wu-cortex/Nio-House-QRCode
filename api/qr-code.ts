@@ -1,6 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(200).end();
+  }
+
   // Only allow GET
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -17,6 +25,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Authorization': 'Bearer 2.0IkLw1IayXSA5CD32/1MdpTe9sF9zhR5BPmTEA3a2JX0=',
         'Accept-Language': 'zh-Hans-CN;q=1, en-CN;q=0.9',
         'User-Agent': 'NextevCar/6.2.0 (iPhone; iOS 26.3; Scale/3.00)',
+        'Referer': 'https://app.nio.com/',
+        'Origin': 'https://app.nio.com',
+        'Connection': 'keep-alive',
+        'Cookie': 'tgw_l7_route=2270eb995faa544130e664f1c8a2e41f',
       },
     });
 
