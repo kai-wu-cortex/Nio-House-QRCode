@@ -19,7 +19,7 @@ const NOTION_DATA_SOURCE_ID = process.env.NOTION_DATABASE_ID || '';
 const notion = new Client({ auth: NOTION_TOKEN });
 
 /**
- * Validate user credentials against Notion database (data source)
+ * Validate user credentials against Notion data source
  */
 export async function validateCredentials(req: LoginRequest): Promise<ValidationResult> {
   const { username, password } = req;
@@ -29,9 +29,9 @@ export async function validateCredentials(req: LoginRequest): Promise<Validation
   }
 
   try {
-    // For a data source (database), we query directly
-    const response = await (notion.databases as any).queryDatabase({
-      database_id: NOTION_DATA_SOURCE_ID,
+    // Query data source (your database is a data source in Notion)
+    const response = await notion.dataSources.query({
+      data_source_id: NOTION_DATA_SOURCE_ID,
       filter: {
         property: '账户名',
         title: {
