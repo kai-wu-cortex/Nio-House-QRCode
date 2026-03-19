@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { QrCode, Calendar, ChevronLeft, User, Lock, X, ArrowRight } from 'lucide-react';
+import { QrCode, Calendar, ChevronLeft, User, Lock, X, ArrowRight, Loader2 } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import { getSavedAuthState, saveAuthState, clearAuthState } from './utils/auth';
 
 export default function App() {
@@ -11,11 +12,59 @@ export default function App() {
   const [showQR, setShowQR] = useState(false);
   const [showReservation, setShowReservation] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
 
+  // Update time every second
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch QR code when modal opens, refresh every minute
+  useEffect(() => {
+    if (!showQR) {
+      setQrCodeData(null);
+      setQrError(null);
+      return;
+    }
+
+    const fetchQRCode = async () => {
+      setQrLoading(true);
+      setQrError(null);
+
+      try {
+        const response = await fetch('/api/qr-code', {
+          method: 'GET',
+        });
+
+        if (!response.ok) {
+          throw new Error(`请求失败: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data && data.qr_code) {
+          setQrCodeData(data.qr_code);
+        } else {
+          throw new Error('返回数据中没有二维码');
+        }
+      } catch (error) {
+        console.error('Failed to fetch QR code:', error);
+        setQrError('获取二维码失败，请稍后重试');
+      } finally {
+        setQrLoading(false);
+      }
+    };
+
+    // Fetch immediately
+    fetchQRCode();
+
+    // Refresh every minute
+    const refreshTimer = setInterval(fetchQRCode, 60000);
+
+    return () => clearInterval(refreshTimer);
+  }, [showQR]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -219,17 +268,40 @@ export default function App() {
                   <h3 className="text-2xl font-semibold mb-1 relative z-10">进入牛屋</h3>
                   <p className="text-gray-500 text-sm mb-10 relative z-10">向工作人员出示此二维码</p>
                   
-                  {/* Mock QR Code */}
+                  {/* QR Code */}
                   <div className="w-56 h-56 bg-white border border-gray-100 shadow-sm rounded-2xl flex items-center justify-center relative overflow-hidden z-10 p-4">
-                    <QrCode className="w-full h-full text-gray-900" strokeWidth={1} />
-                    {/* Scanning animation line */}
-                    <motion.div 
-                      animate={{ y: ['0%', '200%', '0%'] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                      className="absolute top-0 left-0 w-full h-0.5 bg-gray-900 shadow-[0_0_15px_rgba(0,0,0,0.5)]"
-                    />
+                    {qrLoading && !qrCodeData && (
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
+                        <p className="text-sm text-gray-400">获取二维码中...</p>
+                      </div>
+                    )}
+
+                    {qrError && (
+                      <div className="flex flex-col items-center justify-center text-center p-4">
+                        <p className="text-sm text-red-500">{qrError}</p>
+                      </div>
+                    )}
+
+                    {qrCodeData && !qrLoading && !qrError && (
+                      <>
+                        <QRCode
+                          value={qrCodeData}
+                          size={192}
+                          fgColor="#000000"
+                          bgColor="#ffffff"
+                          level="M"
+                        />
+                        {/* Scanning animation line */}
+                        <motion.div
+                          animate={{ y: ['0%', '100%', '0%'] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                          className="absolute top-0 left-0 w-full h-0.5 bg-gray-900 shadow-[0_0_15px_rgba(0,0,0,0.5)]"
+                        />
+                      </>
+                    )}
                   </div>
-                  
+
                   <div className="mt-10 flex flex-col items-center space-y-2 relative z-10">
                     <span className="font-mono text-2xl tracking-widest font-medium text-gray-900">
                       {formatTime(currentTime)}
