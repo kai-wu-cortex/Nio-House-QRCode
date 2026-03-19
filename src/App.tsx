@@ -64,7 +64,7 @@ export default function App() {
       } else {
         const data = await response.json();
 
-        if (data && data.data && data.qr_code) {
+        if (data && data.data && data.data.qr_code) {
           setQrCodeData(data.data.qr_code);
         } else if (data && data.qr_code) {
           setQrCodeData(data.qr_code);
