@@ -35,8 +35,8 @@ export default function App() {
         // If backend proxy fails (Cloudflare blocks Vercel IP), use public CORS proxy
         console.warn('Backend proxy failed, trying CORS proxy...');
         // sign is fixed, must use fixed timestamp that matches the sign
-        const timestamp = 1772817763;
-        const targetUrl = `https://app.nio.com/n/c/lifestyle/account/user/qr_code?app_id=10002&app_ver=6.2.0&device_id=14e3f556d3984993a59ad96e8af3ba2d&lang=zh-cn&region=cn&timestamp=${timestamp}&refresh=0&sign=7088d8df23f2aadd9147ad5a4df30a3f`;
+        const timestamp = 1778949276;
+        const targetUrl = `https://app.nio.com/n/c/lifestyle/account/user/qr_code?app_id=10002&app_ver=6.4.1&device_id=14e3f556d3984993a59ad96e8af3ba2d&lang=zh-cn&region=cn&timestamp=${timestamp}&refresh=0&sign=4c200f5a531a081bf7e1519a7af78ae4`;
         const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetUrl)}`;
         const corsResp = await fetch(proxyUrl);
 
